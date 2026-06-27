@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>GoldBot — Backtest Results</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=JetBrains+Mono:wght@300;400;600&family=Syne:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#04080f;--surface:#080e1a;--panel:#0d1525;--border:#182035;--border2:#1e2d48;
+  --gold:#f5c518;--gold2:#ffa500;--green:#00e676;--red:#ff3d57;--blue:#2979ff;
+  --cyan:#00e5ff;--text:#d8e8ff;--muted:#3d5070;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;min-height:100vh;}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(245,197,24,0.015) 1px,transparent 1px),linear-gradient(90deg,rgba(245,197,24,0.015) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0;}
+
+header{position:relative;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:16px 40px;border-bottom:1px solid var(--border);background:rgba(4,8,15,0.9);backdrop-filter:blur(16px);}
+.logo{display:flex;align-items:center;gap:14px;}
+.logo-icon{width:44px;height:44px;background:linear-gradient(135deg,var(--gold),var(--gold2));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:22px;}
+.logo-name{font-family:'Orbitron',monospace;font-size:20px;font-weight:900;letter-spacing:3px;background:linear-gradient(135deg,var(--gold),var(--gold2));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
+.logo-sub{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:2px;margin-top:2px;}
+.nav-links{display:flex;gap:12px;}
+.nav-btn{padding:8px 18px;border:1px solid var(--border2);border-radius:8px;color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:1px;cursor:pointer;background:transparent;transition:all 0.2s;text-decoration:none;display:flex;align-items:center;}
+.nav-btn:hover{border-color:var(--gold);color:var(--gold);}
+.nav-btn.active{border-color:var(--gold);color:var(--gold);background:rgba(245,197,24,0.08);}
+
+.main{position:relative;z-index:5;padding:32px 40px;display:flex;flex-direction:column;gap:24px;}
+
+/* RUN BUTTON */
+.run-btn{align-self:center;padding:16px 56px;background:linear-gradient(135deg,rgba(245,197,24,0.15),rgba(255,165,0,0.1));border:1px solid var(--gold);border-radius:12px;color:var(--gold);font-family:'Orbitron',monospace;font-size:14px;font-weight:700;letter-spacing:3px;cursor:pointer;transition:all 0.25s;display:flex;align-items:center;gap:12px;}
+.run-btn:hover{box-shadow:0 0 40px rgba(245,197,24,0.25);transform:translateY(-2px);}
+.run-btn:disabled{border-color:var(--border2);color:var(--muted);background:transparent;cursor:not-allowed;transform:none;box-shadow:none;}
+
+/* STATS GRID */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;}
+.stat-card{background:var(--panel);border:1px solid var(--border2);border-radius:14px;padding:20px;position:relative;overflow:hidden;}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
+.stat-card.gold::before{background:linear-gradient(90deg,var(--gold),var(--gold2));}
+.stat-card.green::before{background:var(--green);}
+.stat-card.red::before{background:var(--red);}
+.stat-card.blue::before{background:var(--blue);}
+.stat-label{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;}
+.stat-value{font-family:'Orbitron',monospace;font-size:28px;font-weight:700;}
+.stat-sub{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);margin-top:6px;}
+
+/* WIN RATE VISUAL */
+.winrate-bar{height:6px;background:var(--border);border-radius:3px;margin-top:10px;overflow:hidden;}
+.winrate-fill{height:100%;border-radius:3px;background:var(--green);transition:width 1.5s ease;}
+
+/* ROW STATS */
+.row-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;}
+.mini-card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:18px;}
+.mini-title{font-family:'Orbitron',monospace;font-size:10px;letter-spacing:2px;color:var(--gold);text-transform:uppercase;margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+.mini-title::after{content:'';flex:1;height:1px;background:var(--border);}
+.mini-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.03);font-size:13px;}
+.mini-row:last-child{border-bottom:none;}
+.mini-key{color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:11px;}
+.mini-val{font-family:'Orbitron',monospace;font-size:13px;font-weight:600;}
+
+/* TRADE TABLE */
+.table-wrap{background:var(--panel);border:1px solid var(--border2);border-radius:16px;overflow:hidden;}
+.table-header{display:flex;align-items:center;justify-content:space-between;padding:18px 24px;border-bottom:1px solid var(--border);}
+.table-title{font-family:'Orbitron',monospace;font-size:11px;letter-spacing:3px;color:var(--gold);text-transform:uppercase;}
+.table-scroll{overflow-x:auto;max-height:400px;overflow-y:auto;}
+table{width:100%;border-collapse:collapse;}
+th{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;padding:12px 16px;text-align:left;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--panel);}
+td{font-family:'JetBrains Mono',monospace;font-size:12px;padding:11px 16px;border-bottom:1px solid rgba(255,255,255,0.03);}
+tr:hover td{background:rgba(255,255,255,0.02);}
+.win-row td:last-child{color:var(--green);font-weight:700;}
+.loss-row td:last-child{color:var(--red);font-weight:700;}
+.buy-sig{color:var(--green);font-weight:700;}
+.sell-sig{color:var(--red);font-weight:700;}
+.pnl-pos{color:var(--green);}
+.pnl-neg{color:var(--red);}
+
+/* LOADING */
+.loading-overlay{display:none;position:fixed;inset:0;background:rgba(4,8,15,0.85);z-index:100;align-items:center;justify-content:center;flex-direction:column;gap:20px;backdrop-filter:blur(4px);}
+.loading-overlay.show{display:flex;}
+.gold-ring{width:80px;height:80px;border-radius:50%;border:3px solid var(--border2);border-top-color:var(--gold);border-right-color:var(--gold2);animation:spin 1s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-text{font-family:'Orbitron',monospace;font-size:12px;letter-spacing:3px;color:var(--gold);animation:pulse 1.5s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+.loading-sub{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);}
+
+/* IDLE */
+.idle-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px;gap:20px;opacity:0.5;}
+.idle-icon{font-size:56px;animation:float 4s ease-in-out infinite;}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+.idle-text{font-family:'Orbitron',monospace;font-size:13px;letter-spacing:3px;color:var(--muted);}
+
+/* ERROR */
+.error-bar{display:none;align-items:center;gap:12px;padding:14px 20px;background:rgba(255,61,87,0.08);border:1px solid rgba(255,61,87,0.25);border-radius:10px;font-size:13px;color:#ff7070;}
+.error-bar.show{display:flex;}
+
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+@media(max-width:900px){.stats-grid{grid-template-columns:1fr 1fr}.row-stats{grid-template-columns:1fr}.main{padding:20px}}
+</style>
+</head>
+<body>
+
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="gold-ring"></div>
+  <div class="loading-text">RUNNING BACKTEST</div>
+  <div class="loading-sub">Analyzing 2 weeks of XAU/USD data...</div>
+</div>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">🥇</div>
+    <div><div class="logo-name">GoldBot Pro</div><div class="logo-sub">Backtesting Engine — Last 2 Weeks</div></div>
+  </div>
+  <div class="nav-links">
+    <a href="/" class="nav-btn">📡 Live Signals</a>
+    <a href="/backtest.html" class="nav-btn active">📊 Backtest</a>
+  </div>
+</header>
+
+<div class="main">
+
+  <div class="error-bar" id="errorBar"><span>⚠</span><span id="errorText">Error</span></div>
+
+  <button class="run-btn" id="runBtn" onclick="runBacktest()">
+    <span>⬡</span> RUN BACKTEST — LAST 2 WEEKS
+  </button>
+
+  <!-- IDLE -->
+  <div class="idle-screen" id="idleScreen">
+    <div class="idle-icon">📊</div>
+    <div class="idle-text">Click above to start backtest</div>
+  </div>
+
+  <!-- RESULTS (hidden until backtest runs) -->
+  <div id="results" style="display:none;flex-direction:column;gap:24px;">
+
+    <!-- STAT CARDS -->
+    <div class="stats-grid">
+      <div class="stat-card gold">
+        <div class="stat-label">Final Balance</div>
+        <div class="stat-value" id="sFinalBal" style="color:var(--gold)">—</div>
+        <div class="stat-sub" id="sPnlPct">—</div>
+      </div>
+      <div class="stat-card green">
+        <div class="stat-label">Win Rate</div>
+        <div class="stat-value" id="sWinRate" style="color:var(--green)">—</div>
+        <div class="winrate-bar"><div class="winrate-fill" id="sWinBar" style="width:0%"></div></div>
+        <div class="stat-sub" id="sWinSub">—</div>
+      </div>
+      <div class="stat-card blue">
+        <div class="stat-label">Total Trades</div>
+        <div class="stat-value" id="sTotal" style="color:var(--cyan)">—</div>
+        <div class="stat-sub" id="sTradeSub">—</div>
+      </div>
+      <div class="stat-card red">
+        <div class="stat-label">Max Drawdown</div>
+        <div class="stat-value" id="sDrawdown" style="color:var(--red)">—</div>
+        <div class="stat-sub">Peak to trough</div>
+      </div>
+    </div>
+
+    <!-- ROW STATS -->
+    <div class="row-stats">
+      <div class="mini-card">
+        <div class="mini-title">💰 PnL Breakdown</div>
+        <div class="mini-row"><span class="mini-key">Starting Balance</span><span class="mini-val">$1,000</span></div>
+        <div class="mini-row"><span class="mini-key">Total PnL</span><span class="mini-val" id="mTotalPnl">—</span></div>
+        <div class="mini-row"><span class="mini-key">Avg Win</span><span class="mini-val" style="color:var(--green)" id="mAvgWin">—</span></div>
+        <div class="mini-row"><span class="mini-key">Avg Loss</span><span class="mini-val" style="color:var(--red)" id="mAvgLoss">—</span></div>
+        <div class="mini-row"><span class="mini-key">Risk:Reward</span><span class="mini-val" style="color:var(--gold)" id="mRR">—</span></div>
+      </div>
+      <div class="mini-card">
+        <div class="mini-title">🟢 BUY Performance</div>
+        <div class="mini-row"><span class="mini-key">Total BUY trades</span><span class="mini-val" id="mBuyTotal">—</span></div>
+        <div class="mini-row"><span class="mini-key">BUY Wins</span><span class="mini-val" style="color:var(--green)" id="mBuyWins">—</span></div>
+        <div class="mini-row"><span class="mini-key">BUY Win Rate</span><span class="mini-val" id="mBuyWR">—</span></div>
+      </div>
+      <div class="mini-card">
+        <div class="mini-title">🔴 SELL Performance</div>
+        <div class="mini-row"><span class="mini-key">Total SELL trades</span><span class="mini-val" id="mSellTotal">—</span></div>
+        <div class="mini-row"><span class="mini-key">SELL Wins</span><span class="mini-val" style="color:var(--green)" id="mSellWins">—</span></div>
+        <div class="mini-row"><span class="mini-key">SELL Win Rate</span><span class="mini-val" id="mSellWR">—</span></div>
+      </div>
+    </div>
+
+    <!-- TRADE TABLE -->
+    <div class="table-wrap">
+      <div class="table-header">
+        <div class="table-title">📋 All Trades</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted)" id="tTableSub">—</div>
+      </div>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Signal</th>
+              <th>Entry $</th>
+              <th>SL $</th>
+              <th>TP $</th>
+              <th>Score</th>
+              <th>PnL $</th>
+              <th>Balance $</th>
+              <th>Result</th>
+            </tr>
+          </thead>
+          <tbody id="tradeTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+async function runBacktest() {
+  const btn = document.getElementById('runBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span>⏳</span> RUNNING...';
+  document.getElementById('loadingOverlay').classList.add('show');
+  document.getElementById('errorBar').classList.remove('show');
+  document.getElementById('idleScreen').style.display = 'none';
+  document.getElementById('results').style.display = 'none';
+
+  try {
+    const res = await fetch('/backtest');
+    const d   = await res.json();
+
+    if (d.error) { showError(d.error); return; }
+    renderResults(d);
+  } catch(e) {
+    showError('Cannot connect to backend. Make sure app.py is running.');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<span>⬡</span> RUN BACKTEST — LAST 2 WEEKS';
+    document.getElementById('loadingOverlay').classList.remove('show');
+  }
+}
+
+function renderResults(d) {
+  // Stat cards
+  const pnlColor = d.total_pnl >= 0 ? 'var(--green)' : 'var(--red)';
+  document.getElementById('sFinalBal').textContent = '$' + d.final_balance.toLocaleString();
+  document.getElementById('sPnlPct').textContent   = `${d.total_pnl >= 0 ? '+' : ''}$${d.total_pnl} (${d.pnl_pct >= 0 ? '+' : ''}${d.pnl_pct}%)`;
+  document.getElementById('sPnlPct').style.color   = pnlColor;
+  document.getElementById('sWinRate').textContent  = d.win_rate + '%';
+  document.getElementById('sWinBar').style.width   = d.win_rate + '%';
+  document.getElementById('sWinSub').textContent   = `${d.wins} wins / ${d.losses} losses`;
+  document.getElementById('sTotal').textContent    = d.total;
+  document.getElementById('sTradeSub').textContent = `${d.buy_trades} BUY | ${d.sell_trades} SELL`;
+  document.getElementById('sDrawdown').textContent = d.max_drawdown + '%';
+
+  // PnL breakdown
+  document.getElementById('mTotalPnl').textContent  = `${d.total_pnl >= 0 ? '+' : ''}$${d.total_pnl}`;
+  document.getElementById('mTotalPnl').style.color  = pnlColor;
+  document.getElementById('mAvgWin').textContent    = `+$${d.avg_win}`;
+  document.getElementById('mAvgLoss').textContent   = `-$${d.avg_loss}`;
+  document.getElementById('mRR').textContent        = `1:${d.rr_ratio}`;
+
+  // BUY/SELL
+  const buyWR  = d.buy_trades  > 0 ? ((d.buy_wins  / d.buy_trades)  * 100).toFixed(1) : '0';
+  const sellWR = d.sell_trades > 0 ? ((d.sell_wins / d.sell_trades) * 100).toFixed(1) : '0';
+  document.getElementById('mBuyTotal').textContent  = d.buy_trades;
+  document.getElementById('mBuyWins').textContent   = d.buy_wins;
+  document.getElementById('mBuyWR').textContent     = buyWR + '%';
+  document.getElementById('mSellTotal').textContent = d.sell_trades;
+  document.getElementById('mSellWins').textContent  = d.sell_wins;
+  document.getElementById('mSellWR').textContent    = sellWR + '%';
+
+  // Table
+  document.getElementById('tTableSub').textContent = `${d.total} total trades | Last 2 weeks`;
+  const tbody = document.getElementById('tradeTableBody');
+  tbody.innerHTML = '';
+  d.trades.forEach((t, i) => {
+    const isWin = t.result.includes('WIN');
+    const row = document.createElement('tr');
+    row.className = isWin ? 'win-row' : 'loss-row';
+    row.innerHTML = `
+      <td>${i+1}</td>
+      <td class="${t.signal==='BUY'?'buy-sig':'sell-sig'}">${t.signal}</td>
+      <td>${t.entry.toFixed(2)}</td>
+      <td style="color:var(--red)">${t.sl.toFixed(2)}</td>
+      <td style="color:var(--green)">${t.tp.toFixed(2)}</td>
+      <td style="color:var(--gold)">${t.score}</td>
+      <td class="${t.pnl>=0?'pnl-pos':'pnl-neg'}">${t.pnl>=0?'+':''}$${t.pnl.toFixed(2)}</td>
+      <td>$${t.balance.toFixed(2)}</td>
+      <td>${t.result}</td>
+    `;
+    tbody.appendChild(row);
+  });
+
+  document.getElementById('results').style.display = 'flex';
+  window.scrollTo({top: 200, behavior: 'smooth'});
+}
+
+function showError(msg) {
+  document.getElementById('errorText').textContent = msg;
+  document.getElementById('errorBar').classList.add('show');
+  document.getElementById('idleScreen').style.display = 'flex';
+}
+</script>
+</body>
+</html>
